@@ -1,5 +1,36 @@
 # LAB-11: Database system development (Flights Catering domain)
 
+## Prerequisites
+
+### MVC
+
+The application is organized according to the MVC (Model-View-Controller) architecture. The main idea of MVC is to separate the data of the application, the logic that handles requests, and the presentation layer that renders the response for the user.
+
+- Model represents the application data and the rules associated with that data.
+- View is responsible for rendering the HTML page that is returned to the user.
+- Controller accepts the HTTP request, invokes the required logic, and decides which view should be returned.
+
+To see how this works in practice, consider the `flight` functionality.
+
+- `Flight` represents the model.
+- `FlightController` represents the controller.
+- `flight/list` and `flight/create` are views rendered with Thymeleaf.
+- `FlightRepository` is used to load and save the data related to `Flight`.
+
+Consider the request `GET /flight`. First, the browser sends the request to the server. Then `FlightController` handles it and calls `FlightRepository` to obtain the list of flights from the database. After that, the controller places the result into the Spring `Model` and returns the `flight/list` view. Finally, Thymeleaf renders the page, and the browser receives the generated HTML response.
+
+```mermaid
+flowchart LR
+    A[Browser<br/>GET /flight] --> B[FlightController]
+    B --> C[FlightRepository]
+    C --> D[(Database)]
+    D --> C
+    C --> B
+    B --> E[Model attributes]
+    E --> F[Thymeleaf view<br/>flight/list]
+    F --> G[HTML response]
+```
+
 You can treat this project as a template for your own project. You can use the same structure and adapt it to your needs.
 
 ## 1. How to build a project?
@@ -123,4 +154,3 @@ You can also check this ([Spring PetClinic] (https://github.com/spring-projects/
 ---
 
 Enjoy coding!
-

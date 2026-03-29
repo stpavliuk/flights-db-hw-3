@@ -11,14 +11,11 @@
     <header th:text="@{'Create passenger for: ' + ${flight.no}}"></header>
 
     <section>
-        <form th:action="@{'/flight/' + ${flight.no} + '/passenger/create'}" method="post">
-
-            <div class="mb-3">
-                <input type="hidden" th:value="${flight.id}" id="flightId"/>
-            </div>
+        <form th:action="@{'/flight/' + ${flight.id} + '/passenger/create'}" method="post">
             <div class="mb-3">
                 <label for="ticketNo" class="form-label">Ticket Number</label>
-                <input type="text" class="form-control" id="ticketNo" name="ticketNo" readonly>
+                <input type="text" class="form-control" id="ticketNo" name="ticketNo" maxlength="13"
+                       placeholder="LH-320123A" required>
             </div>
             <div class="mb-3">
                 <label for="passengerName" class="form-label">Passenger Name</label>
@@ -26,7 +23,7 @@
             </div>
             <div class="mb-3">
                 <label for="seatRow" class="form-label">Seat Row</label>
-                <input type="number" class="form-control" id="seatRow" name="seatRow" required>
+                <input type="number" class="form-control" id="seatRow" name="seatRow" min="1" required>
             </div>
             <div class="mb-3">
                 <label for="seatLetter" class="form-label">Seat Letter</label>
@@ -40,10 +37,40 @@
                 <label for="creditCardNo" class="form-label">Credit Card No</label>
                 <input type="text" class="form-control" id="creditCardNo" name="creditCardNo" required/>
             </div>
+            <div class="mb-3">
+                <label for="mealType">Select Meal</label>
+                <select id="mealType" name="preorderedMealType" class="form-select form-select-sm" required>
+                    <option value="" selected disabled>Select a meal</option>
+                    <option th:each="meal : ${mealTypes}"
+                            th:value="${meal.type}"
+                            th:text="${meal.type}">
+                    </option>
+                </select>
+            </div>
+            <div class="mb-3">
+                <label for="beverageTypeH">Select Hot Beverage</label>
+                <select id="beverageTypeH" name="preorderedBeverageType" class="form-select form-select-sm">
+                    <option value="" selected>-</option>
+                    <option th:each="beverage : ${beverageTypesH}"
+                            th:value="${beverage.type}"
+                            th:text="${beverage.type}">
+                    </option>
+                </select>
+            </div>
+            <div class="mb-3">
+                <label for="beverageTypeC">Select Cold Beverage</label>
+                <select id="beverageTypeC" name="preorderedBeverageType" class="form-select form-select-sm">
+                    <option value="" selected>-</option>
+                    <option th:each="beverage : ${beverageTypesC}"
+                            th:value="${beverage.type}"
+                            th:text="${beverage.type}">
+                    </option>
+                </select>
+            </div>
 
 
 
-            <button type="submit" class="btn btn-primary">Update</button>
+            <button type="submit" class="btn btn-primary">Create</button>
         </form>
     </section>
 

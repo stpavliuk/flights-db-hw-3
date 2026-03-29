@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html th:replace="~{common/layout :: layout(~{::title}, ~{::header}, ~{::section})}" lang="en"
+      xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Create Flight</title>
+</head>
+<body>
+<header>Create Flight</header>
+
+<section>
+    <div class="d-flex flex-wrap gap-2 mb-4">
+        <a th:href="@{/flight}" class="btn btn-outline-secondary">Back to Flights</a>
+    </div>
+
+    <form th:action="@{/flight/create}" method="post">
+        <div class="row g-4">
+            <div class="col-lg-7">
+                <div class="card h-100">
+                    <div class="card-header bg-body-tertiary fw-semibold">Schedule</div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label for="no" class="form-label">Flight Number</label>
+                            <input type="text" class="form-control" id="no" name="no"
+                                   placeholder="AA335" th:value="${flightCreateForm.no}" required>
+                        </div>
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label for="departureDate" class="form-label">Departure Date</label>
+                                <input type="date" class="form-control" id="departureDate" name="departureDate"
+                                       th:value="${flightCreateForm.departureDate}" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="departureTime" class="form-label">Departure Time</label>
+                                <input type="time" class="form-control" id="departureTime" name="departureTime"
+                                       th:value="${flightCreateForm.departureTime}" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="checkInTime" class="form-label">Check-In Time</label>
+                                <input type="time" class="form-control" id="checkInTime" name="checkInTime"
+                                       th:value="${flightCreateForm.checkInTime}" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="arrivalDate" class="form-label">Arrival Date</label>
+                                <input type="date" class="form-control" id="arrivalDate" name="arrivalDate"
+                                       th:value="${flightCreateForm.arrivalDate}" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="arrivalTime" class="form-label">Arrival Time</label>
+                                <input type="time" class="form-control" id="arrivalTime" name="arrivalTime"
+                                       th:value="${flightCreateForm.arrivalTime}" required>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-5">
+                <div class="card h-100">
+                    <div class="card-header bg-body-tertiary fw-semibold">Route and Equipment</div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label for="fromAirportCode" class="form-label">From Airport</label>
+                            <select id="fromAirportCode" name="fromAirportCode" class="form-select" required>
+                                <option value="" disabled th:selected="${flightCreateForm.fromAirportCode == ''}">Select airport</option>
+                                <option th:each="airportCode : ${airportCodes}"
+                                        th:value="${airportCode}"
+                                        th:text="${airportCode}"
+                                        th:selected="${airportCode == flightCreateForm.fromAirportCode}">
+                                </option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="toAirportCode" class="form-label">To Airport</label>
+                            <select id="toAirportCode" name="toAirportCode" class="form-select" required>
+                                <option value="" disabled th:selected="${flightCreateForm.toAirportCode == ''}">Select airport</option>
+                                <option th:each="airportCode : ${airportCodes}"
+                                        th:value="${airportCode}"
+                                        th:text="${airportCode}"
+                                        th:selected="${airportCode == flightCreateForm.toAirportCode}">
+                                </option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="airlineCode" class="form-label">Airline</label>
+                            <select id="airlineCode" name="airlineCode" class="form-select" required>
+                                <option value="" disabled th:selected="${flightCreateForm.airlineCode == ''}">Select airline</option>
+                                <option th:each="airlineCode : ${airlineCodes}"
+                                        th:value="${airlineCode}"
+                                        th:text="${airlineCode}"
+                                        th:selected="${airlineCode == flightCreateForm.airlineCode}">
+                                </option>
+                            </select>
+                        </div>
+                        <div class="mb-0">
+                            <label for="aircraftNumber" class="form-label">Aircraft Number</label>
+                            <input type="text" class="form-control" id="aircraftNumber" name="aircraftNumber"
+                                   placeholder="10234" th:value="${flightCreateForm.aircraftNumber}" required>
+                            <div class="form-text">Use an aircraft number paired with the selected airline.</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card mt-4">
+            <div class="card-header bg-body-tertiary fw-semibold">Available Aircraft Assignments</div>
+            <div class="card-body">
+                <div class="d-flex flex-wrap gap-2">
+                    <span class="badge text-bg-light border" th:each="assignment : ${aircraftAssignments}" th:text="${assignment}">
+                        BA-25006
+                    </span>
+                </div>
+            </div>
+        </div>
+
+        <div class="d-flex justify-content-end gap-2 mt-4">
+            <a th:href="@{/flight}" class="btn btn-outline-secondary">Cancel</a>
+            <button type="submit" class="btn btn-primary">Create Flight</button>
+        </div>
+    </form>
+</section>
+</body>
+</html>

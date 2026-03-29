@@ -9,45 +9,62 @@
 <header>Flights</header>
 
 <section>
-    <div class="row">
-        <div class="col">
-            <table class="table align-middle">
-                <thead>
-                <tr>
-                    <th scope="col">Flight Number</th>
-                    <th scope="col">Departure Date</th>
-                    <th scope="col">Departure Time</th>
-                    <th scope="col">Check In Time</th>
-                    <th scope="col">Arrival Date</th>
-                    <th scope="col">Arrival Time</th>
-                    <th scope="col">From Airport Code</th>
-                    <th scope="col">To Airport Code</th>
-                    <th scope="col">Aircraft</th>
-                    <th scope="col">Actions</th>
-                </tr>
-                </thead>
-                <tbody>
-                <tr th:each="flight : ${flights}">
-                    <th scope="row" th:text="${flight.no}">Flight Number</th>
-                    <th scope="row" th:text="${flight.departureDate}">Departure Date</th>
-                    <td th:text="${flight.departureTime}">Departure Time</td>
-                    <td th:text="${flight.checkInTime}">Check In Time</td>
-                    <td th:text="${flight.arrivalDate}">Arrival Date</td>
-                    <td th:text="${flight.arrivalTime}">Arrival Time</td>
-                    <td th:text="${flight.fromAirportCode}">From Airport Code</td>
-                    <td th:text="${flight.toAirportCode}">To Airport Code</td>
-                    <td th:text="${flight.airlineCode} + '-' + ${flight.aircraftNumber}">Aircraft</td>
-                    <td>
-                        <a th:href="@{'/flight/' + ${flight.id} + '/passenger'}" class="btn btn-sm btn-primary my-1">Passengers
-                            ></a>
-                        <a th:href="@{'/flight/' + ${flight.id} + '/catering/report'}" class="btn btn-sm btn-primary my-1">Catering
-                            Report ></a>
-                        <a th:href="@{'/flight/' + ${flight.id} + '/meals/load'}" class="btn btn-sm btn-primary my-1">Load
-                            Meals ></a>
-                    </td>
-                </tr>
-                </tbody>
-            </table>
+    <div class="d-flex flex-wrap gap-2 mb-4">
+        <a th:href="@{/flight/create}" class="btn btn-primary">Create Flight</a>
+    </div>
+
+    <div class="row g-3 mb-4">
+        <div class="col-md-4">
+            <div class="card text-bg-primary">
+                <div class="card-body">
+                    <div class="small text-uppercase fw-semibold mb-2">Active Records</div>
+                    <div class="display-6 mb-1" th:text="${#lists.size(flights)}">0</div>
+                    <div class="small">Flights available for planning and reporting</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header bg-body-tertiary d-flex justify-content-between align-items-center">
+            <span class="fw-semibold">Flight Schedule</span>
+            <span class="badge text-bg-secondary" th:text="${#lists.size(flights)} + ' flights'">0 flights</span>
+        </div>
+        <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead>
+            <tr>
+                <th scope="col">Flight Number</th>
+                <th scope="col">Departure Date</th>
+                <th scope="col">Departure Time</th>
+                <th scope="col">Check In Time</th>
+                <th scope="col">Arrival Date</th>
+                <th scope="col">Arrival Time</th>
+                <th scope="col">From Airport Code</th>
+                <th scope="col">To Airport Code</th>
+                <th scope="col">Aircraft</th>
+                <th scope="col">Actions</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr th:each="flight : ${flights}">
+                <th scope="row" th:text="${flight.no}">Flight Number</th>
+                <td th:text="${flight.departureDate}">Departure Date</td>
+                <td th:text="${flight.departureTime}">Departure Time</td>
+                <td th:text="${flight.checkInTime}">Check In Time</td>
+                <td th:text="${flight.arrivalDate}">Arrival Date</td>
+                <td th:text="${flight.arrivalTime}">Arrival Time</td>
+                <td th:text="${flight.fromAirportCode}">From Airport Code</td>
+                <td th:text="${flight.toAirportCode}">To Airport Code</td>
+                <td th:text="${flight.airlineCode + '-' + flight.aircraftNumber}">Aircraft</td>
+                <td class="text-nowrap">
+                    <a th:href="@{'/flight/' + ${flight.id} + '/passenger'}" class="btn btn-sm btn-primary my-1">Passengers</a>
+                    <a th:href="@{'/flight/' + ${flight.id} + '/catering/report'}" class="btn btn-sm btn-outline-primary my-1">Catering Report</a>
+                    <a th:href="@{'/flight/' + ${flight.id} + '/meals/load'}" class="btn btn-sm btn-outline-primary my-1">Load Plan</a>
+                </td>
+            </tr>
+            </tbody>
+        </table>
         </div>
     </div>
 </section>

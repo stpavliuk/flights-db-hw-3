@@ -11,44 +11,58 @@
   <header th:text="@{'Flight Load Report: ' + ${flight.getNo()} + ', Departure Date: ' + ${flight.departureDate}}"></header>
 
   <section>
-    <h3 class="mb-4">Meals to load</h3>
+    <div class="d-flex flex-wrap gap-2 mb-3">
+      <a th:href="@{/flight}" class="btn btn-outline-secondary">All Flights</a>
+      <a th:href="@{'/flight/' + ${flight.id} + '/passenger'}" class="btn btn-outline-secondary">Passengers</a>
+    </div>
 
-    <table class="table table-bordered">
-      <thead class="table-light">
-        <tr>
-          <th>Meal Type</th>
-          <th>Items count</th>
-        </tr>
-      </thead>
-      <tbody>
-      <tr th:each="meal : ${mealsToLoad}">
-        <td th:text="${meal.mealType}"></td>
-        <td th:text="${meal.quantity}"></td>
-      </tr>
-      </tbody>
-    </table>
-
-    <h3 class="mb-4">Beverages To Load</h3>
-
-    <table class="table table-bordered">
-      <thead class="table-light">
-      <tr>
-        <th>Meal Type</th>
-        <th>Items count</th>
-      </tr>
-      </thead>
-      <tbody>
-      <tr th:each="meal : ${beveragesToLoad}">
-        <td th:text="${meal.beverageType}"></td>
-        <td th:text="${meal.quantity}"></td>
-      </tr>
-      </tbody>
-    </table>
-
-    <div class="row">
-      <div class="col">
-        <a th:href="@{'/flight/' + ${flight.id} + '/meals/load/confirm'}" class="btn btn-primary">Confirm Load</a>
+    <div class="row g-4">
+      <div class="col-lg-6">
+        <div class="card h-100">
+          <div class="card-header bg-body-tertiary fw-semibold">Meals to Load</div>
+          <div class="table-responsive">
+          <table class="table table-bordered table-hover mb-0">
+            <thead class="table-light">
+              <tr>
+                <th>Meal Type</th>
+                <th>Items count</th>
+              </tr>
+            </thead>
+            <tbody>
+            <tr th:each="meal : ${mealsToLoad}">
+              <td th:text="${meal.mealType}"></td>
+              <td th:text="${meal.quantity}"></td>
+            </tr>
+            </tbody>
+          </table>
+          </div>
+        </div>
       </div>
+      <div class="col-lg-6">
+        <div class="card h-100">
+          <div class="card-header bg-body-tertiary fw-semibold">Beverages to Load</div>
+          <div class="table-responsive">
+          <table class="table table-bordered table-hover mb-0">
+            <thead class="table-light">
+            <tr>
+              <th>Beverage Type</th>
+              <th>Items count</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr th:each="meal : ${beveragesToLoad}">
+              <td th:text="${meal.beverageType}"></td>
+              <td th:text="${meal.quantity}"></td>
+            </tr>
+            </tbody>
+          </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="d-flex justify-content-end mt-4">
+      <a th:href="@{'/flight/' + ${flight.id} + '/meals/load/confirm'}" class="btn btn-primary">Confirm Load Plan</a>
     </div>
   </section>
 

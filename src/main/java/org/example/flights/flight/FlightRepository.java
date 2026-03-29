@@ -5,9 +5,28 @@ import org.springframework.data.jdbc.repository.query.Query;
 import org.springframework.data.repository.CrudRepository;
 import org.springframework.data.repository.query.Param;
 
+import java.time.LocalDate;
+import java.util.List;
 import java.util.Set;
 
 public interface FlightRepository extends CrudRepository<Flight, Long> {
+
+    boolean existsByNoAndDepartureDate(String no, LocalDate departureDate);
+
+    @Query("SELECT COUNT(*) > 0 FROM airport WHERE airport_code = :airportCode")
+    boolean existsAirportCode(@Param("airportCode") String airportCode);
+
+    @Query("SELECT COUNT(*) > 0 FROM airline WHERE code = :airlineCode")
+    boolean existsAirlineCode(@Param("airlineCode") String airlineCode);
+
+    @Query("SELECT airport_code FROM airport ORDER BY airport_code")
+    List<String> findAirportCodes();
+
+    @Query("SELECT code FROM airline ORDER BY code")
+    List<String> findAirlineCodes();
+
+    @Query("SELECT CONCAT(airline_code, '-', number) FROM aircraft ORDER BY airline_code, number")
+    List<String> findAircraftAssignments();
 
     @Query("""
             SELECT mtsc.*, b.qty_in_unit AS servings_quantity

@@ -9,7 +9,6 @@ import org.example.flights.passenger.preorder.PassengerBeverage;
 import org.example.flights.passenger.preorder.PassengerMealType;
 import org.example.flights.passenger.tclass.TravelClass;
 import org.springframework.data.jdbc.core.JdbcAggregateTemplate;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.BindParam;
@@ -17,8 +16,8 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.server.ResponseStatusException;
 import org.springframework.util.StringUtils;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.util.Arrays;
 import java.util.List;
@@ -31,6 +30,7 @@ import java.util.stream.StreamSupport;
 @Controller
 public class PassengerController {
 
+    private static final String DEFAULT_SEAT_LETTER = "A";
     private static final List<String> SEAT_LETTERS = List.of("A", "B", "C", "D", "E", "F");
 
     private final PassengerRepository    passengerRepository;
@@ -63,12 +63,21 @@ public class PassengerController {
 
     @GetMapping("/passenger/{ticketNo}/edit")
     public String editPassengerMeal(@PathVariable String ticketNo,
-                                    Model model) {
-        var passenger = passengerRepository.findById(ticketNo)
-                .orElseThrow(() -> new IllegalArgumentException("Invalid ticket number:" + ticketNo));
+                                    Model model,
+                                    RedirectAttributes redirectAttributes) {
+        var passenger = passengerRepository.findById(ticketNo).orElse(null);
+        if (passenger == null) {
+            return redirectToFlightsWithError(redirectAttributes, "Passenger not found.");
+        }
 
         model.addAttribute("passenger", passenger);
         addPassengerPreferenceOptions(model);
+        if (!model.containsAttribute("selectedMealType")) {
+            model.addAttribute("selectedMealType", currentMealType(passenger));
+        }
+        if (!model.containsAttribute("selectedBeverageTypes")) {
+            model.addAttribute("selectedBeverageTypes", currentBeverageTypes(passenger));
+        }
 
         return "passenger/edit";
     }
@@ -77,37 +86,43 @@ public class PassengerController {
     public String updatePassengerPreorder(
             @PathVariable String ticketNo,
             @BindParam("preorderedMealType") String preorderedMealType,
-            @BindParam("preorderedBeverageType") String[] preorderedBeverageType
+            @BindParam("preorderedBeverageType") String[] preorderedBeverageType,
+            RedirectAttributes redirectAttributes
     ) {
-        var passenger = passengerRepository.findById(ticketNo).orElseThrow(
-                () -> new IllegalArgumentException("Invalid ticket number:" + ticketNo));
+        var passenger = passengerRepository.findById(ticketNo).orElse(null);
+        if (passenger == null) {
+            return redirectToFlightsWithError(redirectAttributes, "Passenger not found.");
+        }
 
-        var mealType = mealTypeRepository.findById(preorderedMealType)
-                .map(it -> Set.of(new PassengerMealType.Preordered(it.type())))
-                .orElseGet(Set::of);
+        var mealType = findMealType(preorderedMealType);
+        if (mealType.isEmpty()) {
+            return redirectToPassengerEditError(ticketNo, redirectAttributes,
+                    "Meal selection is required.", preorderedMealType, normalizeSelectedBeverages(preorderedBeverageType));
+        }
 
-        var beverages = Arrays.stream(preorderedBeverageType)
-                .map(beverageTypeRepository::findById)
-                .flatMap(Optional::stream)
-                .map(it -> new PassengerBeverage.Preordered(it.type()))
-                .collect(Collectors.toSet());
+        var beverages = parsePreorderedBeverages(preorderedBeverageType);
 
         passenger.setPreorderedBeverages(beverages);
-        passenger.setPreorderedMeals(mealType);
+        passenger.setPreorderedMeals(Set.of(new PassengerMealType.Preordered(mealType.get().type())));
         passengerRepository.save(passenger);
-
+        redirectAttributes.addFlashAttribute("successMessage", "Passenger preferences updated.");
 
         return "redirect:/flight/" + passenger.getFlightId() + "/passenger";
     }
 
     @GetMapping("/flight/{flightId}/passenger/create")
-    public String createPassengerPage(@PathVariable Long flightId, Model model) {
-        var flight = flightRepository.findById(flightId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Flight not found."));
+    public String createPassengerPage(@PathVariable Long flightId, Model model, RedirectAttributes redirectAttributes) {
+        var flight = flightRepository.findById(flightId).orElse(null);
+        if (flight == null) {
+            return redirectToFlightsWithError(redirectAttributes, "Flight not found.");
+        }
 
         model.addAttribute("flight", flight);
         model.addAttribute("seatLetters", SEAT_LETTERS);
         addPassengerPreferenceOptions(model);
+        if (!model.containsAttribute("createPassengerForm")) {
+            model.addAttribute("createPassengerForm", PassengerCreateForm.empty());
+        }
 
         return "passenger/create";
     }
@@ -120,59 +135,68 @@ public class PassengerController {
                                   @RequestParam String seatLetter,
                                   @RequestParam String creditCardNo,
                                   @RequestParam(required = false) String preorderedMealType,
-                                  @RequestParam(required = false) String[] preorderedBeverageType) {
-        flightRepository.findById(flightId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Flight not found."));
+                                  @RequestParam(required = false) String[] preorderedBeverageType,
+                                  RedirectAttributes redirectAttributes) {
+        var flight = flightRepository.findById(flightId).orElse(null);
+        if (flight == null) {
+            return redirectToFlightsWithError(redirectAttributes, "Flight not found.");
+        }
+
+        var form = buildCreatePassengerForm(ticketNo, fullName, seatRow, seatLetter, preorderedMealType, preorderedBeverageType);
 
         if (seatRow == null) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Seat row is required.");
+            return redirectToCreatePassengerError(flightId, redirectAttributes, "Seat row is required.", form);
         }
 
-        var normalizedTicketNo = ticketNo.strip().toUpperCase();
-        var normalizedFullName = fullName.strip();
-        var normalizedSeatLetter = seatLetter.strip().toUpperCase();
-        var normalizedCreditCardNo = creditCardNo.strip();
-
-        if (!StringUtils.hasText(normalizedTicketNo)
-                || !StringUtils.hasText(normalizedFullName)
-                || !StringUtils.hasText(normalizedSeatLetter)
-                || !StringUtils.hasText(normalizedCreditCardNo)) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "All passenger fields are required.");
+        if (!StringUtils.hasText(form.getTicketNo())
+                || !StringUtils.hasText(form.getFullName())
+                || !StringUtils.hasText(form.getSeatLetter())
+                || !StringUtils.hasText(creditCardNo)) {
+            return redirectToCreatePassengerError(flightId, redirectAttributes,
+                    "All passenger fields are required.", form);
         }
 
-        if (!SEAT_LETTERS.contains(normalizedSeatLetter)) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Seat letter must be between A and F.");
+        if (!SEAT_LETTERS.contains(form.getSeatLetter())) {
+            return redirectToCreatePassengerError(flightId, redirectAttributes,
+                    "Seat letter must be between A and F.", form);
         }
 
-        var mealType = parseRequiredMealType(preorderedMealType);
+        var mealType = findMealType(form.getPreorderedMealType());
+        if (mealType.isEmpty()) {
+            return redirectToCreatePassengerError(flightId, redirectAttributes,
+                    "Meal selection is required.", form);
+        }
 
         try {
             TravelClass.fromSeatRow(seatRow);
         } catch (IllegalArgumentException ex) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, ex.getMessage(), ex);
+            return redirectToCreatePassengerError(flightId, redirectAttributes, ex.getMessage(), form);
         }
 
-        if (passengerRepository.existsById(normalizedTicketNo)) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "Passenger ticket number already exists.");
+        if (passengerRepository.existsById(form.getTicketNo())) {
+            return redirectToCreatePassengerError(flightId, redirectAttributes,
+                    "Passenger ticket number already exists.", form);
         }
 
-        if (passengerRepository.existsByFlightIdAndSeatRowAndSeatLetter(flightId, seatRow, normalizedSeatLetter)) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "Seat is already occupied on this flight.");
+        if (passengerRepository.existsByFlightIdAndSeatRowAndSeatLetter(flightId, seatRow, form.getSeatLetter())) {
+            return redirectToCreatePassengerError(flightId, redirectAttributes,
+                    "Seat is already occupied on this flight.", form);
         }
 
         var passenger = new Passenger();
-        passenger.setTicketNo(normalizedTicketNo);
+        passenger.setTicketNo(form.getTicketNo());
         passenger.setFlightId(flightId);
-        passenger.setFullName(normalizedFullName);
+        passenger.setFullName(form.getFullName());
         passenger.setSeatRow(seatRow);
-        passenger.setSeatLetter(normalizedSeatLetter);
-        passenger.setCreditCardNo(normalizedCreditCardNo);
-        passenger.setPreorderedMeals(Set.of(new PassengerMealType.Preordered(mealType.type())));
+        passenger.setSeatLetter(form.getSeatLetter());
+        passenger.setCreditCardNo(creditCardNo.strip());
+        passenger.setPreorderedMeals(Set.of(new PassengerMealType.Preordered(mealType.get().type())));
         passenger.setPreorderedBeverages(parsePreorderedBeverages(preorderedBeverageType));
         passenger.setMealsToBeServed(Set.of());
         passenger.setBeveragesToBeServed(Set.of());
 
         jdbcAggregateTemplate.insert(passenger);
+        redirectAttributes.addFlashAttribute("successMessage", "Passenger " + form.getTicketNo() + " created.");
 
         return "redirect:/flight/" + flightId + "/passenger";
     }
@@ -182,17 +206,16 @@ public class PassengerController {
                 .collect(Collectors.groupingBy(Beverage.Type::hoc));
 
         model.addAttribute("mealTypes", mealTypeRepository.findAll());
-        model.addAttribute("beverageTypesH", beverageTypes.get(Beverage.HoC.H));
-        model.addAttribute("beverageTypesC", beverageTypes.get(Beverage.HoC.C));
+        model.addAttribute("beverageTypesH", beverageTypes.getOrDefault(Beverage.HoC.H, List.of()));
+        model.addAttribute("beverageTypesC", beverageTypes.getOrDefault(Beverage.HoC.C, List.of()));
     }
 
-    private Meal.MealType parseRequiredMealType(String preorderedMealType) {
+    private Optional<Meal.MealType> findMealType(String preorderedMealType) {
         if (!StringUtils.hasText(preorderedMealType)) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Meal selection is required.");
+            return Optional.empty();
         }
 
-        return mealTypeRepository.findById(preorderedMealType.strip())
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Meal selection is required."));
+        return mealTypeRepository.findById(preorderedMealType.strip());
     }
 
     private Set<PassengerBeverage.Preordered> parsePreorderedBeverages(String[] preorderedBeverageType) {
@@ -204,5 +227,128 @@ public class PassengerController {
                 .flatMap(Optional::stream)
                 .map(it -> new PassengerBeverage.Preordered(it.type()))
                 .collect(Collectors.toSet());
+    }
+
+    private Set<String> normalizeSelectedBeverages(String[] preorderedBeverageType) {
+        return Stream.ofNullable(preorderedBeverageType)
+                .flatMap(Arrays::stream)
+                .filter(StringUtils::hasText)
+                .map(String::strip)
+                .collect(Collectors.toSet());
+    }
+
+    private String currentMealType(Passenger passenger) {
+        return Stream.ofNullable(passenger.getPreorderedMeals())
+                .flatMap(Set::stream)
+                .map(PassengerMealType::getMealType)
+                .findFirst()
+                .orElse("");
+    }
+
+    private Set<String> currentBeverageTypes(Passenger passenger) {
+        return Stream.ofNullable(passenger.getPreorderedBeverages())
+                .flatMap(Set::stream)
+                .map(PassengerBeverage::getBeverageType)
+                .collect(Collectors.toSet());
+    }
+
+    private PassengerCreateForm buildCreatePassengerForm(String ticketNo,
+                                                         String fullName,
+                                                         Integer seatRow,
+                                                         String seatLetter,
+                                                         String preorderedMealType,
+                                                         String[] preorderedBeverageType) {
+        return new PassengerCreateForm(
+                normalizeUpper(ticketNo),
+                normalizeText(fullName),
+                seatRow,
+                normalizeUpper(seatLetter),
+                normalizeText(preorderedMealType),
+                normalizeSelectedBeverages(preorderedBeverageType)
+        );
+    }
+
+    private String normalizeText(String value) {
+        return value == null ? "" : value.strip();
+    }
+
+    private String normalizeUpper(String value) {
+        return normalizeText(value).toUpperCase();
+    }
+
+    private String redirectToCreatePassengerError(Long flightId,
+                                                  RedirectAttributes redirectAttributes,
+                                                  String message,
+                                                  PassengerCreateForm form) {
+        redirectAttributes.addFlashAttribute("errorMessage", message);
+        redirectAttributes.addFlashAttribute("createPassengerForm", form);
+        return "redirect:/flight/" + flightId + "/passenger/create";
+    }
+
+    private String redirectToPassengerEditError(String ticketNo,
+                                                RedirectAttributes redirectAttributes,
+                                                String message,
+                                                String selectedMealType,
+                                                Set<String> selectedBeverageTypes) {
+        redirectAttributes.addFlashAttribute("errorMessage", message);
+        redirectAttributes.addFlashAttribute("selectedMealType", normalizeText(selectedMealType));
+        redirectAttributes.addFlashAttribute("selectedBeverageTypes", selectedBeverageTypes);
+        return "redirect:/passenger/" + ticketNo + "/edit";
+    }
+
+    private String redirectToFlightsWithError(RedirectAttributes redirectAttributes, String message) {
+        redirectAttributes.addFlashAttribute("errorMessage", message);
+        return "redirect:/flight";
+    }
+
+    public static final class PassengerCreateForm {
+        private final String ticketNo;
+        private final String fullName;
+        private final Integer seatRow;
+        private final String seatLetter;
+        private final String preorderedMealType;
+        private final Set<String> preorderedBeverageTypes;
+
+        private PassengerCreateForm(String ticketNo,
+                                    String fullName,
+                                    Integer seatRow,
+                                    String seatLetter,
+                                    String preorderedMealType,
+                                    Set<String> preorderedBeverageTypes) {
+            this.ticketNo = ticketNo;
+            this.fullName = fullName;
+            this.seatRow = seatRow;
+            this.seatLetter = StringUtils.hasText(seatLetter) ? seatLetter : DEFAULT_SEAT_LETTER;
+            this.preorderedMealType = preorderedMealType;
+            this.preorderedBeverageTypes = Set.copyOf(preorderedBeverageTypes);
+        }
+
+        public static PassengerCreateForm empty() {
+            return new PassengerCreateForm("", "", null, DEFAULT_SEAT_LETTER, "", Set.of());
+        }
+
+        public String getTicketNo() {
+            return ticketNo;
+        }
+
+        public String getFullName() {
+            return fullName;
+        }
+
+        public Integer getSeatRow() {
+            return seatRow;
+        }
+
+        public String getSeatLetter() {
+            return seatLetter;
+        }
+
+        public String getPreorderedMealType() {
+            return preorderedMealType;
+        }
+
+        public Set<String> getPreorderedBeverageTypes() {
+            return preorderedBeverageTypes;
+        }
     }
 }

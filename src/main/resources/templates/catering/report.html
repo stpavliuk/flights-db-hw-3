@@ -8,30 +8,41 @@
 <body>
 <header>Flights Management - Catering Report</header>
 <section>
-    <div class="row">
-        <div class="col-md-6">
-            <p><strong>Airline:</strong> <span th:text="${flight.airlineCode}"></span></p>
-            <p><strong>Flight No:</strong> <span th:text="${flight.no}"></span></p>
-            <p><strong>From:</strong> <span th:text="${flight.fromAirportCode}"></span></p>
-            <p><strong>Departure Date:</strong> <span th:text="${flight.departureDate}"></span></p>
-            <p><strong>Departure Time:</strong> <span th:text="${flight.departureTime}"></span></p>
-        </div>
-        <div class="col-md-6">
-            <p><strong>Aircraft:</strong> <span th:text="${flight.aircraftNumber}"></span></p>
-            <p><strong>To:</strong> <span th:text="${flight.toAirportCode}"></span></p>
-            <p><strong>Arrival Date:</strong> <span th:text="${flight.arrivalDate}"></span></p>
-            <p><strong>Arrival Time:</strong> <span th:text="${flight.arrivalTime}"></span></p>
-            <p><strong>Duration:</strong> <span
-                    th:text="${flight.flightDuration.toHours()} + ' Hours ' + ${flight.flightDuration.toMinutesPart()} + ' Minutes'"></span>
-            </p>
+    <div class="d-flex flex-wrap gap-2 mb-4">
+        <a th:href="@{/flight}" class="btn btn-outline-secondary">All Flights</a>
+        <a th:href="@{'/flight/' + ${flight.id} + '/passenger'}" class="btn btn-outline-secondary">Passengers</a>
+        <a th:href="@{'/flight/' + ${flight.id} + '/meals/load'}" class="btn btn-outline-secondary">Load Plan</a>
+    </div>
+
+    <div class="card mb-4">
+        <div class="card-header bg-body-tertiary fw-semibold">Flight Summary</div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <p><strong>Airline:</strong> <span th:text="${flight.airlineCode}"></span></p>
+                    <p><strong>Flight No:</strong> <span th:text="${flight.no}"></span></p>
+                    <p><strong>From:</strong> <span th:text="${flight.fromAirportCode}"></span></p>
+                    <p><strong>Departure Date:</strong> <span th:text="${flight.departureDate}"></span></p>
+                    <p class="mb-md-0"><strong>Departure Time:</strong> <span th:text="${flight.departureTime}"></span></p>
+                </div>
+                <div class="col-md-6">
+                    <p><strong>Aircraft:</strong> <span th:text="${flight.aircraftNumber}"></span></p>
+                    <p><strong>To:</strong> <span th:text="${flight.toAirportCode}"></span></p>
+                    <p><strong>Arrival Date:</strong> <span th:text="${flight.arrivalDate}"></span></p>
+                    <p><strong>Arrival Time:</strong> <span th:text="${flight.arrivalTime}"></span></p>
+                    <p class="mb-0"><strong>Duration:</strong> <span
+                            th:text="${flight.flightDuration.toHours()} + ' Hours ' + ${flight.flightDuration.toMinutesPart()} + ' Minutes'"></span>
+                    </p>
+                </div>
+            </div>
         </div>
     </div>
 
-    <hr/>
-
     <div class="mb-5">
-        <h3>Passengers and Their Meals</h3>
-        <table class="table table-bordered">
+        <div class="card">
+        <div class="card-header bg-body-tertiary fw-semibold">Passengers and Assigned Service</div>
+        <div class="table-responsive">
+        <table class="table table-bordered table-hover mb-0">
             <thead class="table-light">
             <tr>
                 <th colspan="3">Passenger</th>
@@ -75,44 +86,53 @@
             </tr>
             </tbody>
         </table>
+        </div>
+        </div>
     </div>
 
-    <!-- Unused Meals -->
-    <div class="mb-4">
-        <h3>Unused Meals</h3>
-        <table class="table table-bordered table-striped">
-            <thead class="table-light">
-            <tr>
-                <th>Meal Type</th>
-                <th>Unused (In Units)</th>
-            </tr>
-            </thead>
-            <tbody>
-            <tr th:each="meal : ${unusedMeals}">
-                <td th:text="${meal.name}"></td>
-                <td th:text="${meal.unusedUnits}"></td>
-            </tr>
-            </tbody>
-        </table>
-    </div>
-
-    <!-- Unused Beverages -->
-    <div>
-        <h3>Unused Beverages</h3>
-        <table class="table table-bordered table-striped">
-            <thead class="table-light">
-            <tr>
-                <th>Beverage Type</th>
-                <th>Unused (In Units)</th>
-            </tr>
-            </thead>
-            <tbody>
-            <tr th:each="beverage : ${unusedBeverages}">
-                <td th:text="${beverage.name}"></td>
-                <td th:text="${beverage.unusedUnits}"></td>
-            </tr>
-            </tbody>
-        </table>
+    <div class="row g-4">
+        <div class="col-lg-6">
+            <div class="card h-100">
+                <div class="card-header bg-body-tertiary fw-semibold">Unused Meals</div>
+                <div class="table-responsive">
+                <table class="table table-striped mb-0">
+                    <thead class="table-light">
+                    <tr>
+                        <th>Meal Type</th>
+                        <th>Unused (In Units)</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr th:each="meal : ${unusedMeals}">
+                        <td th:text="${meal.name}"></td>
+                        <td th:text="${meal.unusedUnits}"></td>
+                    </tr>
+                    </tbody>
+                </table>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-6">
+            <div class="card h-100">
+                <div class="card-header bg-body-tertiary fw-semibold">Unused Beverages</div>
+                <div class="table-responsive">
+                <table class="table table-striped mb-0">
+                    <thead class="table-light">
+                    <tr>
+                        <th>Beverage Type</th>
+                        <th>Unused (In Units)</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr th:each="beverage : ${unusedBeverages}">
+                        <td th:text="${beverage.name}"></td>
+                        <td th:text="${beverage.unusedUnits}"></td>
+                    </tr>
+                    </tbody>
+                </table>
+                </div>
+            </div>
+        </div>
     </div>
 </section>
 </body>
